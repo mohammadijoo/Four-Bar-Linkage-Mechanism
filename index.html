@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="author" content="Abolfazl Mohammadijoo" />
+  <link rel="icon" type="image/svg+xml" href="assets/Abolfazl-Mohammadijoo.png" />
+  <link rel="shortcut icon" href="assets/Abolfazl-Mohammadijoo.png" />
+  <link rel="apple-touch-icon" href="assets/Abolfazl-Mohammadijoo.png" />
+  <meta name="description" content="Static HTML, CSS, and JavaScript four-bar linkage simulator with SVG animation, Grashof classification, and MathJax theory notes." />
+  <title>Four-Bar Linkage Static Web Simulator</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <div class="app-shell" id="appShell">
+    <aside class="control-panel" aria-label="Linkage controls">
+      <div class="brand-card">
+        <div class="eyebrow">Mechanism Design</div>
+        <h1>Four-Bar Linkage</h1>
+        <p>Static browser simulator for the fixed ground link <strong>g</strong>, input link <strong>a</strong>, output link <strong>b</strong>, and floating/coupler link <strong>f</strong>.</p>
+      </div>
+
+      <section class="card controls-card" aria-label="Animation controls">
+        <button id="playButton" class="play-button" type="button">PLAY</button>
+        <div class="branch-toggle" role="group" aria-label="Assembly branch">
+          <button id="openBranch" class="small-button active" type="button">Open branch</button>
+          <button id="crossBranch" class="small-button" type="button">Crossed branch</button>
+        </div>
+        <label class="speed-row" for="speedSlider">
+          <span>Animation speed</span>
+          <input id="speedSlider" type="range" min="0.25" max="3" step="0.05" value="1" />
+        </label>
+      </section>
+
+      <section class="card sliders-card" aria-label="Length sliders">
+        <div class="section-title">Link lengths</div>
+        <div class="slider-group" data-link="g">
+          <div class="slider-header"><label for="gSlider">Ground link <span>g</span></label><output id="gValue">22 cm</output></div>
+          <input id="gSlider" type="range" min="5" max="40" step="0.5" value="22" />
+        </div>
+        <div class="slider-group" data-link="a">
+          <div class="slider-header"><label for="aSlider">Input link <span>a</span></label><output id="aValue">10 cm</output></div>
+          <input id="aSlider" type="range" min="5" max="40" step="0.5" value="10" />
+        </div>
+        <div class="slider-group" data-link="b">
+          <div class="slider-header"><label for="bSlider">Output link <span>b</span></label><output id="bValue">18 cm</output></div>
+          <input id="bSlider" type="range" min="5" max="40" step="0.5" value="18" />
+        </div>
+        <div class="slider-group" data-link="f">
+          <div class="slider-header"><label for="fSlider">Floating link <span>f</span></label><output id="fValue">26 cm</output></div>
+          <input id="fSlider" type="range" min="5" max="40" step="0.5" value="26" />
+        </div>
+      </section>
+
+      <section class="card metrics-card" aria-label="Mechanism indices">
+        <div class="section-title">Indices</div>
+        <div class="metric-row"><span>Grashof index</span><strong id="gIndex">0.0</strong></div>
+        <div class="formula">\(G=s+l-p-q\)</div>
+        <div class="metric-row"><span>Validity index</span><strong id="vIndex">0.0</strong></div>
+        <div class="formula">\(V=l-s-p-q\)</div>
+        <div class="metric-grid">
+          <div><span>T1</span><strong id="t1Index">0.0</strong></div>
+          <div><span>T2</span><strong id="t2Index">0.0</strong></div>
+          <div><span>T3</span><strong id="t3Index">0.0</strong></div>
+        </div>
+      </section>
+
+      <section class="card help-card" aria-label="Model notes">
+        <div class="section-title">Model notes</div>
+        <p><strong>A</strong> and <strong>B</strong> are fixed ground pivots. The ground link <strong>g</strong> stays horizontal and cannot rotate during animation.</p>
+        <p>The mechanism pose is solved by intersecting the circle centered at <strong>C</strong> with radius <strong>f</strong> and the circle centered at <strong>B</strong> with radius <strong>b</strong>.</p>
+      </section>
+    </aside>
+
+    <main class="stage-panel" aria-label="Four-bar linkage visualization and theory">
+      <section class="simulator-block" aria-label="Interactive four-bar simulator">
+        <header class="stage-header">
+          <div>
+            <div class="eyebrow">SVG mechanism workspace</div>
+            <h2>Full linkage model</h2>
+          </div>
+          <div class="angle-readout" id="angleReadout">ALPHA = 45.0° · BETA = 0.0°</div>
+        </header>
+
+        <section class="canvas-card" id="canvasCard" aria-label="Mechanism canvas">
+          <svg id="mechanismSvg" viewBox="0 0 1000 660" role="img" aria-label="Animated four-bar linkage mechanism">
+            <defs>
+              <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="8" stdDeviation="8" flood-opacity="0.18" />
+              </filter>
+              <marker id="arrowRed" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L8,4 L0,8 Z" fill="#ef4444" />
+              </marker>
+              <marker id="arrowBlue" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L8,4 L0,8 Z" fill="#2563eb" />
+              </marker>
+            </defs>
+            <rect class="svg-bg" x="0" y="0" width="1000" height="660" rx="24" />
+            <g id="gridLayer"></g>
+            <g id="supportLayer"></g>
+            <g id="angleLayer"></g>
+            <g id="linkLayer"></g>
+            <g id="jointLayer"></g>
+            <g id="labelLayer"></g>
+          </svg>
+
+          <div class="status-dock" aria-live="polite">
+            <div id="grashofBadge" class="status-badge neutral">Grashof status</div>
+            <div id="stateBadge" class="status-badge neutral">Mechanism state</div>
+            <div id="validityBadge" class="status-badge neutral">Validity status</div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <article class="theory-panel" id="theory">
+        <div class="article-hero">
+          <div class="eyebrow">Static HTML/CSS/JS version</div>
+          <h2>Four-Bar Linkage Web Simulator</h2>
+          <p>This static project is an educational browser application for interactive simulation, classification, and visualization of the classical four-bar linkage mechanism used in mechanism design and mechanical engineering courses.</p>
+          <div class="badge-row" aria-label="Technology badges">
+            <span>HTML5</span>
+            <span>CSS3</span>
+            <span>JavaScript</span>
+            <span>SVG</span>
+            <span>MathJax</span>
+          </div>
+        </div>
+
+        <nav class="article-nav" aria-label="Page sections">
+          <a href="#overview">Overview</a>
+          <a href="#quick-start">Quick Start</a>
+          <a href="#mechanism-design-theory">Theory</a>
+          <a href="#four-bar-linkage-model">Four-Bar Model</a>
+          <a href="#position-solution">Position Solution</a>
+          <a href="#grashof-criterion">Grashof</a>
+          <a href="#applications">Applications</a>
+          <a href="#educational-use">Educational Use</a>
+        </nav>
+
+        <section id="overview" class="doc-section">
+          <h3>Project Overview</h3>
+          <p>The simulator is designed for students, instructors, and engineers studying <strong>Mechanism Design</strong>, <strong>Kinematics of Machinery</strong>, <strong>Machine Theory</strong>, or <strong>Mechanical Engineering Design</strong>.</p>
+          <p>This version is a pure static web application:</p>
+          <ul>
+            <li><strong>HTML</strong> defines the interface, controls, SVG workspace, and theory content.</li>
+            <li><strong>CSS</strong> controls the responsive layout, visual styling, cards, buttons, sliders, status badges, and SVG appearance.</li>
+            <li><strong>JavaScript</strong> handles link-position solving, mechanism classification, branch switching, real-time animation, and SVG drawing inside the browser.</li>
+          </ul>
+          <p>The app can be uploaded directly to a website as three files: <code>index.html</code>, <code>styles.css</code>, and <code>app.js</code>.</p>
+
+          <div class="responsive-table">
+            <table>
+              <thead>
+                <tr><th>Pane</th><th>Purpose</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><strong>Left pane</strong></td><td>Contains link-length sliders, animation controls, branch selection, Grashof index, validity index, and mechanism state output.</td></tr>
+                <tr><td><strong>Right pane</strong></td><td>Contains the SVG animation with fixed ground pivots, labels, angle arcs, and status overlays.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="quick-start" class="doc-section">
+          <h3>Quick Start</h3>
+          <p>Upload these three files to the same directory on your website:</p>
+          <pre><code>index.html
+styles.css
+app.js</code></pre>
+          <p>Then open <code>index.html</code> in a browser. For local testing, double-click <code>index.html</code> or serve the directory with any static server.</p>
+          <pre><code>python -m http.server 8000</code></pre>
+          <p>After editing only web files, refresh the browser. A hard refresh such as <code>Ctrl + F5</code> is useful when the browser caches the old CSS or JavaScript.</p>
+        </section>
+
+        <section id="mechanism-design-theory" class="doc-section">
+          <h3>Mechanism Design Theory</h3>
+          <p><strong>Mechanism design</strong> studies systems of rigid or flexible bodies connected by joints so that an input motion is transformed into a desired output motion. Unlike structural design, where the primary concern is resisting loads without moving, mechanism design focuses on <strong>controlled motion generation</strong>.</p>
+          <p>A mechanism usually contains links, joints, a ground or frame, an input link, an output link, and a coupler/floating link. In planar mechanism design, the most important joint is the <strong>revolute joint</strong>, which allows one link to rotate relative to another link about a fixed point.</p>
+          <p>The four-bar linkage is the most fundamental planar closed-chain mechanism. It is frequently used to teach position analysis, velocity analysis, acceleration analysis, Grashof classification, toggle positions, singularities, motion synthesis, and coupler-curve generation.</p>
+        </section>
+
+        <section id="four-bar-linkage-model" class="doc-section">
+          <h3>Four-Bar Linkage Model</h3>
+          <p>A planar four-bar linkage consists of four rigid links connected in a closed loop by four revolute joints. In this project, the notation is:</p>
+          <div class="responsive-table">
+            <table>
+              <thead><tr><th>Symbol</th><th>Name</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><strong>g</strong></td><td>Ground link</td><td>Fixed link between anchor pivots <strong>A</strong> and <strong>B</strong>.</td></tr>
+                <tr><td><strong>a</strong></td><td>Input link</td><td>Driven link from <strong>A</strong> to moving pivot <strong>C</strong>. Its input angle is <strong>α</strong>.</td></tr>
+                <tr><td><strong>b</strong></td><td>Output link</td><td>Output link from fixed pivot <strong>B</strong> to moving pivot <strong>D</strong>. Its output angle is <strong>β</strong>.</td></tr>
+                <tr><td><strong>f</strong></td><td>Floating/coupler link</td><td>Moving link connecting pivots <strong>C</strong> and <strong>D</strong>.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>The GUI sliders restrict each link length to:</p>
+          <div class="math-block">\[5\;\text{cm} \leq g,a,b,f \leq 40\;\text{cm}.\]</div>
+        </section>
+
+        <section id="coordinate-definition" class="doc-section">
+          <h3>Coordinate Definition</h3>
+          <p>The ground pivots are fixed in the global coordinate system:</p>
+          <div class="math-block">\[A=(0,0), \qquad B=(g,0).\]</div>
+          <p>The input link rotates about pivot <strong>A</strong> with input angle <strong>α</strong>:</p>
+          <div class="math-block">\[C = A + a
+\begin{bmatrix}
+\cos \alpha \\
+\sin \alpha
+\end{bmatrix}
+=
+\begin{bmatrix}
+a\cos\alpha \\
+a\sin\alpha
+\end{bmatrix}.\]</div>
+          <p>The output link rotates about pivot <strong>B</strong> with output angle <strong>β</strong>:</p>
+          <div class="math-block">\[D = B + b
+\begin{bmatrix}
+\cos \beta \\
+\sin \beta
+\end{bmatrix}
+=
+\begin{bmatrix}
+g + b\cos\beta \\
+b\sin\beta
+\end{bmatrix}.\]</div>
+          <p>The floating link imposes the loop-closure constraint:</p>
+          <div class="math-block">\[\|D-C\| = f.\]</div>
+          <p>Equivalently, the vector loop equation is:</p>
+          <div class="math-block">\[\vec{AB}+\vec{BD}+\vec{DC}+\vec{CA}=0.\]</div>
+          <p>Using this project notation:</p>
+          <div class="math-block">\[g
+\begin{bmatrix}
+1 \\
+0
+\end{bmatrix}
++
+b
+\begin{bmatrix}
+\cos\beta \\
+\sin\beta
+\end{bmatrix}
+-
+f
+\begin{bmatrix}
+\cos\gamma \\
+\sin\gamma
+\end{bmatrix}
+-
+a
+\begin{bmatrix}
+\cos\alpha \\
+\sin\alpha
+\end{bmatrix}
+=0,\]</div>
+          <p>where <strong>γ</strong> is the floating-link angle.</p>
+        </section>
+
+        <section id="position-solution" class="doc-section">
+          <h3>Position Solution by Circle Intersection</h3>
+          <p>The browser simulation solves the mechanism geometrically. For each input angle <strong>α</strong>, point <strong>C</strong> is known. Point <strong>D</strong> must satisfy two circle constraints:</p>
+          <div class="math-block">\[\|D-C\|=f, \qquad \|D-B\|=b.\]</div>
+          <p>Thus, <strong>D</strong> is obtained from the intersection of a circle centered at <strong>C</strong> with radius <strong>f</strong> and a circle centered at <strong>B</strong> with radius <strong>b</strong>.</p>
+          <p>Let:</p>
+          <div class="math-block">\[d=\|B-C\|.\]</div>
+          <p>A real assembly exists only if the circle-intersection condition is satisfied:</p>
+          <div class="math-block">\[|f-b| \leq d \leq f+b.\]</div>
+          <p>The distance from <strong>C</strong> to the projection point on line <strong>CB</strong> is:</p>
+          <div class="math-block">\[x = \frac{f^2-b^2+d^2}{2d}.\]</div>
+          <p>The perpendicular distance from line <strong>CB</strong> to either intersection point is:</p>
+          <div class="math-block">\[h=\sqrt{f^2-x^2}.\]</div>
+          <p>The two possible signs of <strong>h</strong> correspond to the two assembly branches: <strong>open branch</strong> and <strong>crossed branch</strong>. The app exposes this through the branch selector in the left pane.</p>
+        </section>
+
+        <section id="freudenstein-equation" class="doc-section">
+          <h3>Freudenstein Equation</h3>
+          <p>The classical four-bar position equation can also be expressed through the Freudenstein equation. For this notation, one useful convention is:</p>
+          <div class="math-block">\[K_1\cos\beta - K_2\cos\alpha + K_3 = \cos(\alpha-\beta),\]</div>
+          <p>where:</p>
+          <div class="math-block">\[K_1=\frac{g}{a}, \qquad K_2=\frac{g}{b}, \qquad K_3=\frac{a^2-f^2+b^2+g^2}{2ab}.\]</div>
+          <p>This equation is useful for analytical position analysis, but the current browser simulation uses the circle-intersection method because it is direct, stable, and visually matches the SVG geometry.</p>
+        </section>
+
+        <section id="grashof-criterion" class="doc-section">
+          <h3>Grashof Criterion</h3>
+          <p>Let the four link lengths be sorted as:</p>
+          <div class="math-block">\[s \leq p \leq q \leq l,\]</div>
+          <p>where <strong>s</strong> is the shortest link, <strong>l</strong> is the longest link, and <strong>p</strong> and <strong>q</strong> are the two intermediate links.</p>
+          <p>The <strong>Grashof criterion</strong> is:</p>
+          <div class="math-block">\[s+l \leq p+q.\]</div>
+          <p>The simulator displays the <strong>Grashof index</strong> as:</p>
+          <div class="math-block">\[G=s+l-p-q.\]</div>
+          <div class="responsive-table">
+            <table>
+              <thead><tr><th>Condition</th><th>Meaning</th></tr></thead>
+              <tbody>
+                <tr><td>\(G&lt;0\)</td><td>Strict Grashof linkage. At least one link is capable of complete rotation.</td></tr>
+                <tr><td>\(G=0\)</td><td>Change-point linkage. The linkage may pass through a collinear singular configuration.</td></tr>
+                <tr><td>\(G&gt;0\)</td><td>Non-Grashof linkage. No link can fully rotate relative to the others in the usual closed-chain assembly.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="validity-index" class="doc-section">
+          <h3>Validity Index</h3>
+          <p>A four-bar mechanism can only form a closed quadrilateral if the longest link is not longer than the sum of the other three links. The simulator displays the <strong>validity index</strong>:</p>
+          <div class="math-block">\[V=l-s-p-q.\]</div>
+          <div class="responsive-table">
+            <table>
+              <thead><tr><th>Condition</th><th>Meaning</th></tr></thead>
+              <tbody>
+                <tr><td>\(V&lt;0\)</td><td>The selected link lengths can form a valid closed four-bar quadrilateral.</td></tr>
+                <tr><td>\(V=0\)</td><td>The mechanism is at the limiting collinear case.</td></tr>
+                <tr><td>\(V&gt;0\)</td><td>The longest link is too long; the mechanism cannot close for any assembly.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="excess-quantities" class="doc-section">
+          <h3>Excess Quantities T1, T2, and T3</h3>
+          <p>The simulator also reports three excess quantities:</p>
+          <div class="math-block">\[T_1=g+f-b-a,\]</div>
+          <div class="math-block">\[T_2=b+g-f-a,\]</div>
+          <div class="math-block">\[T_3=f+b-g-a.\]</div>
+          <p>These quantities are useful in four-bar classification because their signs indicate how the ground, input, output, and floating links compare in possible inversions. The browser app shows these values in the left pane so that the visual mechanism state can be connected to the algebraic classification.</p>
+        </section>
+
+        <section id="crank-rocker" class="doc-section">
+          <h3>Crank, Rocker, 0-Rocker, and π-Rocker</h3>
+          <p>A <strong>crank</strong> is a link that can rotate through a full 360° cycle relative to the ground link. A <strong>rocker</strong> cannot complete a full revolution; it oscillates between two angular limits.</p>
+          <div class="responsive-table">
+            <table>
+              <thead><tr><th>State</th><th>Meaning</th></tr></thead>
+              <tbody>
+                <tr><td><strong>crank-crank</strong></td><td>Both input and output links can rotate fully.</td></tr>
+                <tr><td><strong>crank-rocker</strong></td><td>The input link can rotate fully; the output link oscillates.</td></tr>
+                <tr><td><strong>rocker-crank</strong></td><td>The input link oscillates; the output link can rotate fully.</td></tr>
+                <tr><td><strong>rocker-rocker</strong></td><td>Both input and output links oscillate.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Some teaching references use more detailed rocker labels such as <strong>0-rocker</strong> and <strong>π-rocker</strong>. A 0-rocker has a feasible angular interval associated with the zero-angle side of the reference direction, while a π-rocker has a feasible interval associated with the 180° or π-radian side.</p>
+          <p>In this static JavaScript implementation, the displayed state is computed numerically by sampling feasible input and output angles over one full cycle. If an angle covers the full range, the corresponding link is classified as a crank. Otherwise, it is classified as a rocker.</p>
+        </section>
+
+        <section id="toggle-positions" class="doc-section">
+          <h3>Toggle Positions and Singular Configurations</h3>
+          <p>A four-bar linkage reaches a <strong>toggle position</strong> when two or more links become collinear. At such configurations, the velocity relationship between input and output may become singular, and a small input motion may produce very large or very small output motion depending on the configuration.</p>
+          <p>Mathematically, singular behavior occurs when the Jacobian of the loop-closure equations loses rank. If the loop-closure equations are written as:</p>
+          <div class="math-block">\[F(\alpha,\beta,\gamma)=0,\]</div>
+          <p>then a singularity may occur when:</p>
+          <div class="math-block">\[\det\left(\frac{\partial F}{\partial(\beta,\gamma)}\right)=0.\]</div>
+          <p>In the browser simulation, invalid or near-singular configurations appear when the circle-intersection solution becomes impossible or nearly tangent:</p>
+          <div class="math-block">\[h \approx 0.\]</div>
+        </section>
+
+        <section id="applications" class="doc-section">
+          <h3>Real-World Applications</h3>
+          <p>Four-bar linkages are widely used because they provide complex motion using simple revolute joints and rigid links.</p>
+          <ul class="two-column-list">
+            <li><strong>Automotive suspension:</strong> control arms and linkage systems guide wheel motion.</li>
+            <li><strong>Windshield wipers:</strong> crank-rocker mechanisms convert motor rotation into oscillating wiper motion.</li>
+            <li><strong>Robotic grippers:</strong> parallel and approximate-parallel jaw mechanisms often use four-bar geometry.</li>
+            <li><strong>Excavators and loaders:</strong> bucket and boom linkages guide tool orientation.</li>
+            <li><strong>Walking mechanisms:</strong> coupler curves can approximate foot trajectories.</li>
+            <li><strong>Bicycle suspension:</strong> multi-link rear suspension systems often contain four-bar substructures.</li>
+            <li><strong>Aircraft and machine tools:</strong> linkages transmit controlled angular motion in compact assemblies.</li>
+            <li><strong>Medical and rehabilitation devices:</strong> linkage mechanisms can guide ergonomic motion paths.</li>
+          </ul>
+        </section>
+
+        <section id="web-application-features" class="doc-section">
+          <h3>Web Application Features</h3>
+          <ul class="two-column-list">
+            <li>Responsive two-pane layout.</li>
+            <li>Scrollable settings pane on smaller screens.</li>
+            <li>Sliders for <strong>g</strong>, <strong>a</strong>, <strong>b</strong>, and <strong>f</strong>.</li>
+            <li>Real-time SVG animation.</li>
+            <li>Fixed ground pivots <strong>A</strong> and <strong>B</strong>.</li>
+            <li>Ground link <strong>g</strong> remains fixed and horizontal.</li>
+            <li>Moving labels for links <strong>a</strong>, <strong>b</strong>, and <strong>f</strong>.</li>
+            <li>Input angle display <strong>α</strong> and output angle display <strong>β</strong>.</li>
+            <li>Play/Pause animation.</li>
+            <li>Branch selector for open and crossed assemblies.</li>
+            <li>Grashof / non-Grashof status.</li>
+            <li>Validity status.</li>
+            <li>Mechanism state: crank-crank, crank-rocker, rocker-crank, or rocker-rocker.</li>
+            <li>MathJax-rendered formulas for the theory section.</li>
+          </ul>
+        </section>
+
+        <section id="project-structure" class="doc-section">
+          <h3>Static Project Structure</h3>
+          <pre><code>fourbar-linkage-static-js/
+├── index.html
+├── styles.css
+└── app.js</code></pre>
+        </section>
+
+        <section id="code-explanation" class="doc-section">
+          <h3>Code Explanation</h3>
+          <h4><code>index.html</code></h4>
+          <p>This file defines the left control pane, all sliders and numeric value displays, Play/Pause button, branch controls, Grashof/validity/mechanism-state badges, SVG canvas, MathJax configuration, and the full educational theory content below the animation pane.</p>
+          <h4><code>styles.css</code></h4>
+          <p>This file controls typography, layout, responsive behavior, slider styling, buttons, cards, status badges, theory article formatting, tables, code blocks, and SVG visual elements.</p>
+          <h4><code>app.js</code></h4>
+          <p>This file contains the simulation logic: reading slider values, updating numeric displays, solving the linkage position by circle intersection, drawing links and joints in SVG, keeping the ground pivots fixed, classifying Grashof and non-Grashof states, classifying crank/rocker behavior by numerical sampling, and animating the input angle.</p>
+        </section>
+
+        <section id="troubleshooting" class="doc-section">
+          <h3>Troubleshooting</h3>
+          <h4>CSS or JavaScript changes do not appear</h4>
+          <p>The browser may be caching old files. Use a hard refresh such as <code>Ctrl + F5</code>, or temporarily add a query string:</p>
+          <pre><code>&lt;link rel="stylesheet" href="styles.css?v=2"&gt;
+&lt;script src="app.js?v=2"&gt;&lt;/script&gt;</code></pre>
+          <h4>The ground link rotates during animation</h4>
+          <p>In a correct four-bar simulation, the ground link must not rotate. The ground pivots are fixed:</p>
+          <div class="math-block">\[A=(0,0), \qquad B=(g,0).\]</div>
+          <p>If the ground appears to rotate, the SVG transform is probably being recomputed from moving links instead of fixed ground anchors. This version anchors <strong>A</strong> and <strong>B</strong> to stable screen coordinates and scales the mechanism around the fixed ground link.</p>
+          <h4>Math formulas do not render</h4>
+          <p>Make sure the MathJax script in <code>index.html</code> is reachable. If your website blocks CDN scripts, download MathJax and replace the CDN URL with a local path.</p>
+        </section>
+
+        <section id="educational-use" class="doc-section">
+          <h3>Educational Use</h3>
+          <p>This project can be used in a mechanism design course to demonstrate four-bar topology, open and crossed assemblies, input-output angle relation, Grashof classification, validity of link lengths, crank and rocker behavior, motion limits, toggle positions, coupler motion, and the relationship between algebraic indices and visual kinematics.</p>
+          <ol>
+            <li>Choose a Grashof mechanism and identify which link is the shortest.</li>
+            <li>Fix different links conceptually and predict crank-rocker behavior.</li>
+            <li>Move the sliders until <code>G = 0</code> and observe change-point behavior.</li>
+            <li>Move the sliders until <code>V &gt; 0</code> and observe invalid assembly behavior.</li>
+            <li>Compare open and crossed branches for the same link lengths.</li>
+            <li>Record input angle <code>α</code> and output angle <code>β</code> at several configurations.</li>
+          </ol>
+        </section>
+
+        <section id="future-improvements" class="doc-section">
+          <h3>Future Improvements</h3>
+          <ul class="two-column-list">
+            <li>Velocity and acceleration analysis.</li>
+            <li>Coupler curve tracing.</li>
+            <li>Export animation frames.</li>
+            <li>Export CSV table of <code>α</code>, <code>β</code>, and joint coordinates.</li>
+            <li>Force and torque analysis.</li>
+            <li>Transmission angle display.</li>
+            <li>Singularity detection with warnings.</li>
+            <li>Local MathJax bundle for fully offline hosting.</li>
+            <li>Additional static examples and presets.</li>
+          </ul>
+        </section>
+
+        <section id="learning-links" class="doc-section learning-links-section">
+          <h3>Related Learning and Reference Links</h3>
+          <p>For deeper study and comparison with other educational resources, the following links are useful:</p>
+          <div class="resource-link-grid">
+            <a class="resource-link-card" href="https://faradars.org/courses/mechanism-design-and-optimization-in-matlab-fvma0041" target="_blank" rel="noopener noreferrer">
+              <span class="resource-link-kicker">Persian online course</span>
+              <strong>Mechanism Design and Optimization in MATLAB</strong>
+              <span>Faradars Elearning course on mechanism design.</span>
+            </a>
+            <a class="resource-link-card" href="https://dynref.engr.illinois.edu/aml.html" target="_blank" rel="noopener noreferrer">
+              <span class="resource-link-kicker">Web simulator reference</span>
+              <strong>University of Illinois Mechanism Simulator</strong>
+              <span>Interactive educational linkage simulator from the University of Illinois.</span>
+            </a>
+          </div>
+        </section>
+<!-- 
+        <section id="license-author" class="doc-section footer-section">
+          <h3>License and Author</h3>
+          <p>This static educational project is released under the MIT License.</p>
+          <p><strong>Abolfazl Mohammadijoo</strong></p>
+          <ul>
+            <li>Portfolio: <a href="https://mohammadijoo.com" target="_blank" rel="noopener noreferrer">https://mohammadijoo.com</a></li>
+          </ul>
+        </section>
+		
+		<section class="download-project-section">
+		  <a
+			class="download-project-button"
+			href="#"
+			download
+		  >
+			Download Project
+		  </a>
+		</section>
+!-->
+		
+  </article>
+  <script src="app.js"></script>
+</body>
+</html>
